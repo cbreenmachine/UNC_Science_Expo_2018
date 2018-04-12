@@ -2,12 +2,10 @@
 ### In the style of Tyler Vigen's book "Spurious Correlations," this is a script 
 ### for collecting, cleaning, and visualizing data to hopefully find some false correlations
 ### of our own. This project is being done for the UNC-Chapel Hill Science Expo on April 14, 2018
-### -Coleman Breen
-
 
 # library for webscraping
 library(rvest)
-#library(tidyverse)
+library(tidyverse)
 library(stringr)
 library(ggplot2)
 library(readr)
