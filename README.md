@@ -2,7 +2,7 @@
 
 This repository builds a Shiny app to demonstrate spurious correlations between UNC basketball data and other data (e.g. stock market trends, Duke basketball data, etc). This app was developed for the [UNC Science EXPO](http://moreheadplanetarium.org/programs/special-activities/unc-science-expo).
 
-The app can be found at [**https://cbreen.shinyapps.io/shiny_app/**](https://cbreen.shinyapps.io/shiny_app/)*
+The app can be found at [**https://cbreen.shinyapps.io/final_app/**](https://cbreen.shinyapps.io/final_app/)*
 
 
 This app was developed by
