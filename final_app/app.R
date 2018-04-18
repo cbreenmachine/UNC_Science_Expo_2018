@@ -1,8 +1,6 @@
 ## Shiny App to visualize spurious correlations with UNC basketball
 #  This script sets up the user interface for correlating UNC basketball wins/win %
-#  with other phenomena. To start, it will have two dropdown menus--one for each
-#  data set. Additionally, it will show the R^2 value of a simple linear regression
-
+#  with other phenomena.
 
 # Set up environment ------------------------------------------------------
 
@@ -28,6 +26,20 @@ label_cleaner <- function(label){
     
 }
 
+# --> Tests for whether a correlation is significant at alpha=.05
+is_significant <- function(x, y, threshold=0.05){
+    pval <- tryCatch({rcorr(x=x, y=y, type="pearson")$P[1, 2]},
+                        error=function(e){1})
+
+    if(pval <= threshold){
+        return(TRUE)
+    } else{
+        return(FALSE)
+    }
+    
+}
+
+
 # Import Data -------------------------------------------------------------
 
 unc_bb <- read.csv('unc_bb.csv')
@@ -40,19 +52,19 @@ y1_options <- colnames(unc_bb)[-2:-1]
 y2_options <- colnames(other_data)[-2:-1]
 
 # Cheater options
-cheat_options <- c("UNC win percentage vs. IBM ratio",
-                   "Points scored on UNC vs. Deaths by lightning",
-                   "Pre-season rank vs. Deaths by lightning",
-                   "Points scored on UNC vs. Duke wins",
-                   "Points scored on UNC vs. Honey production",
-                   "UNC wins vs. Sour cream consumption")
+cheat_options <- c("UNC win percentage men vs. IBM ratio",
+                   "Points scored on UNC men vs. Deaths by lightning",
+                   "Pre-season rank men vs. Deaths by lightning",
+                   "Points scored on UNC men vs. Duke wins",
+                   "Points scored on UNC men vs. Honey production",
+                   "UNC wins men vs. Sour cream consumption")
 
 # User interface ----------------------------------------------------------
 
 
 ui <- fluidPage(
 
-  title = "Correlations with UNC Basketball Data",
+  titlePanel(title = "Can you find a spurious relationship?"),
   
   plotOutput(outputId = "time_series", width = "100%"),
   
@@ -60,24 +72,64 @@ ui <- fluidPage(
   
   fluidRow(
     column(width=4,
-           h2("Test out your own variables..."),
-           selectInput("y1", "Pick a UNC men's basketball variable:", choice=y1_options, selected=y1_options[1]),
+           h3("Test out your own variables..."),
+           selectInput("y1", "Pick a UNC basketball variable:", choice=y1_options, selected=y1_options[1]),
            selectInput("y2", "Pick another variable:", choice=y2_options, selected=y2_options[1]),
            sliderInput("year_span", label="Pick a range of years:", min=1905, max=2018, value=c(1950, 2018), sep=""),
            br()
-  ),
+    ),
   
-  column(width=4, offset=0,
-         h2("Or pick from some of our favorites!"),
+    column(width=4, offset=0,
+         h3("Or pick from some of our favorites!"),
          selectInput('cheat', 'Our favorite plots:', cheat_options,selected=NULL)
-  ),
+    ),
+    
+    column(width=4, offset=0,
+           
+        p("Sometimes, data can be misleading."),
+
+        p("When data shows that two results happen at the same time, 
+          we sometimes think it's because they are related. For example, 
+          if we compare points scored on the UNC men's basketball and deaths
+          by lightning, they both seem to increase over time. 
+          Seeing this data, we might think that the more points other teams 
+          score on UNC, the more people are struck by lightning! 
+          However, just because two things happen at the same time 
+          (correlation) does not mean that one causes the other (causation).",
+
+        p("When two variables seem related or correlated, it might actually be 
+            because something we didn't think of is creating the relationship 
+            between the two things we are studying. We call this a confounding 
+            variable. For example, if we saw that both the men's and women's 
+            basketball teams won games on the same night, we might think the 
+            women winning caused the men to win. The confounding variable would 
+            be that both teams played at home around their fans, which helped 
+            them both win. For the strange correlations shown in this app, 
+            what do you think is the real reason for the relationships we see?"),  
+
+        p("Data is an important part of science -- and increasingly our every day lives 
+          -- so how do we know if the data is fooling us? This is an important issue facing
+          science (and business) today. For example, see the article by 538 titled: ",
+        strong("Science isn't Broken"), br(),
+        "(", a("https://fivethirtyeight.com/features/science-isnt-broken/", 
+               href='(https://fivethirtyeight.com/features/science-isnt-broken/'), ")")
+        )
+    ),
   
-  column(width=2, offset=0,
-         h2("Funding for this project provided by:"),
-         h4("National Science Foundation"), 
-         h4("UNC Willis-Hanes Fund"),
-         h4("The Vicki and David Craver Fund for Faculty Leadership")
-    )
+  
+  fluidRow(
+      column(width=12, offset=0,
+             br(),
+
+             p("Funding for this project provided by: the National Science Foundation,
+               the UNC Willis-Hanes Fund, the Vicki and David Craver Fund for Faculty Leadership, 
+               and the Statistics and Operations Research Department"),
+             
+             p(HTML(paste0('You can find the code to build this app at: ',a(href = 'https://github.com/cbreenmachine/UNC_science_expo_2018', 'https://github.com/cbreenmachine/UNC_science_expo_2018')))),
+             
+             p(HTML(paste0('You can find out more about suprious correlations at: ', a(href = 'http://www.tylervigen.com/spurious-correlations', 'http://www.tylervigen.com/spurious-correlations'))))
+  )
+  )
         
         
 )
@@ -92,30 +144,30 @@ server <- function(input, output, session){
     observe({
         cheat <- input$cheat
 
-        if(cheat == "UNC win percentage vs. IBM ratio"){
-            y1_selection <- 'win_percent'
-            y2_selection <- 'ibm_ratio'
+        if(cheat == "UNC win percentage men vs. IBM ratio"){
+            y1_selection <- 'win_percent_men'
+            y2_selection <- 'ibm_stock_min_max_ratio'
             year_selection <- c(2000, 2008)
-        } else if (cheat == "Points scored on UNC vs. Deaths by lightning"){
-            y1_selection <- 'opponent_ppg'
+        } else if (cheat == "Points scored on UNC men vs. Deaths by lightning"){
+            y1_selection <- 'opponent_ppg_men'
             y2_selection <- 'deaths_by_lightning'
             year_selection <- c(2000, 2007)
-        } else if (cheat == "Pre-season rank vs. Deaths by lightning"){
-            y1_selection <- 'pre_season_rank'
+        } else if (cheat == "Pre-season rank men vs. Deaths by lightning"){
+            y1_selection <- 'pre_season_rank_men'
             y2_selection <- 'deaths_by_lightning'
             year_selection <- c(2000, 2009)
-        } else if (cheat == "Points scored on UNC vs. Duke wins"){
-            y1_selection <- 'opponent_ppg'
-            y2_selection <- 'duke_wins'
+        } else if (cheat == "Points scored on UNC men vs. Duke wins"){
+            y1_selection <- 'opponent_ppg_men'
+            y2_selection <- 'duke_wins_men'
             year_selection <- c(1979, 1994)
             # Don't remove this line. Fixes an inexplainable bug
             updateSliderInput(session, "year_span", min=1970, max=2018)
-        } else if (cheat == "Points scored on UNC vs. Honey production"){
-            y1_selection <- 'opponent_ppg'
+        } else if (cheat == "Points scored on UNC men vs. Honey production"){
+            y1_selection <- 'opponent_ppg_men'
             y2_selection <- 'honey_produced_per_colony_in_lbs'
             year_selection <- c(2004, 2008)
-        } else if (cheat == "UNC wins vs. Sour cream consumption"){
-            y1_selection <- 'wins'
+        } else if (cheat == "UNC wins men vs. Sour cream consumption"){
+            y1_selection <- 'wins_men'
             y2_selection <- 'sour_cream_consumption'
             year_selection <- c(2002, 2009)
         }
@@ -196,9 +248,18 @@ server <- function(input, output, session){
     y1 <- both_df[,2]
     y2 <- both_df[,3]
         
+    # Compute correlation
     correlation <- cor(y1, y2)
 
-
+    # Test significance
+    is_sig <- is_significant(y1, y2, threshold=0.05)
+    
+    if (is_sig) {
+        sub_string <- "Publishable! (p-value < 0.05)"
+    } else {
+        sub_string <- "Not publishable :("
+    }
+    
     # --> Compute the min and max of the y values for scaling purposes
     minY1 <- min(y1)
     maxY1 <- max(y1)
@@ -224,12 +285,13 @@ server <- function(input, output, session){
     par(mar=c(5.1,5.1,5.1,5.1)) # Bottome, left, top, right based on lines of text
     plot(x=t, y=y1,
          ylim=c(minY1, maxY1),
-         col=c1, type='l', main=str_c('Correlation ', format(correlation, digits=3)),
+         col=c1, type='l', main=str_c('Correlation between ',label_cleaner(input$y1), ' and ', label_cleaner(input$y2), ' ', format(correlation, digits=3)),
          xlab='Year', ylab=label_cleaner(input$y1),
          xaxt='n', yaxt='n', lwd=line_width,
          cex.lab=fontSize, cex.main=fontSize, cex.sub=fontSize)
     
     # --> Add a subtitle and second y-axis title
+    mtext(side=3, sub_string, cex=fontSize)
     mtext(side=4,label_cleaner(input$y2), padj=3, cex=fontSize)
 
     # --> First y-axis
